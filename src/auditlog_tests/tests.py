@@ -13,10 +13,22 @@ from django.utils import dateformat, formats, timezone
 from auditlog.middleware import AuditlogMiddleware
 from auditlog.models import LogEntry
 from auditlog.registry import auditlog
-from auditlog_tests.models import SimpleModel, AltPrimaryKeyModel, UUIDPrimaryKeyModel, \
-    ProxyModel, SimpleIncludeModel, SimpleExcludeModel, SimpleMappingModel, RelatedModel, \
-    ManyRelatedModel, AdditionalDataIncludedModel, DateTimeFieldModel, ChoicesFieldModel, \
-    CharfieldTextfieldModel, PostgresArrayFieldModel, NoDeleteHistoryModel
+from auditlog_tests.models import (
+    AdditionalDataIncludedModel,
+    AltPrimaryKeyModel,
+    CharfieldTextfieldModel,
+    ChoicesFieldModel,
+    DateTimeFieldModel,
+    ManyRelatedModel,
+    NoDeleteHistoryModel,
+    PostgresArrayFieldModel,
+    ProxyModel,
+    SimpleExcludeModel,
+    SimpleMappingModel,
+    SimpleModel,
+    SimpleIncludeModel,
+    UUIDPrimaryKeyModel,
+)
 from auditlog import compat
 
 

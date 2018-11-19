@@ -1,5 +1,5 @@
-from django.db.models.signals import pre_save, post_save, post_delete
 from django.db.models import Model
+from django.db.models.signals import post_delete, post_save, pre_save
 
 
 class AuditlogModelRegistry(object):
@@ -14,17 +14,20 @@ class AuditlogModelRegistry(object):
 
         if create:
             self._signals[post_save] = log_create
+
         if update:
             self._signals[pre_save] = log_update
+
         if delete:
             self._signals[post_delete] = log_delete
 
         if custom is not None:
             self._signals.update(custom)
 
-    def register(self, model=None, include_fields=[], exclude_fields=[], mapping_fields={}):
+    def register(self, model=None, include_fields=None, exclude_fields=None, mapping_fields=None):
         """
-        Register a model with auditlog. Auditlog will then track mutations on this model's instances.
+        Register a model with auditlog. Auditlog will then track mutations on this model's
+        instances.
 
         :param model: The model to register.
         :type model: Model
@@ -32,11 +35,22 @@ class AuditlogModelRegistry(object):
         :type include_fields: list
         :param exclude_fields: The fields to exclude. Overrides the fields to include.
         :type exclude_fields: list
+        :param mapping_fields: A map from a model field name to a more readable name
+        :type mapping_fields: dict
         """
+        if include_fields is None:
+            include_fields = []
+
+        if exclude_fields is None:
+            exclude_fields = []
+
+        if mapping_fields is None:
+            mapping_fields = {}
+
         def registrar(cls):
             """Register models for a given class."""
             if not issubclass(cls, Model):
-                raise TypeError("Supplied model is not a valid model.")
+                raise TypeError('Supplied model is not a valid model.')
 
             self._registry[cls] = {
                 'include_fields': include_fields,
@@ -79,9 +93,9 @@ class AuditlogModelRegistry(object):
         try:
             del self._registry[model]
         except KeyError:
-            pass
-        else:
-            self._disconnect_signals(model)
+            return
+
+        self._disconnect_signals(model)
 
     def _connect_signals(self, model):
         """

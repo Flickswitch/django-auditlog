@@ -13,4 +13,5 @@ class ResourceTypeFilter(SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value() is None:
             return queryset
+
         return queryset.filter(content_type_id=self.value())
