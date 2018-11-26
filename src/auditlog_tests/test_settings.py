@@ -22,14 +22,8 @@ MIDDLEWARE = (
     'auditlog.middleware.AuditlogMiddleware',
 )
 
-DATABASE_ROUTERS = ['auditlog_tests.router.PostgresRouter']
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'auditlog_tests.db',
-    },
-    'postgres': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'auditlog_tests_db',
         'USER': 'postgres',
