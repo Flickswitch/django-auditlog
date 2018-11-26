@@ -1,5 +1,3 @@
-import json
-
 from django import urls
 from django.conf import settings
 from django.template.defaultfilters import pluralize
