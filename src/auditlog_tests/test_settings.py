@@ -1,8 +1,6 @@
 """
 Settings file for the Auditlog test suite.
 """
-import django
-
 SECRET_KEY = 'test'
 
 INSTALLED_APPS = [

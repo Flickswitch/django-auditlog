@@ -7,11 +7,12 @@ from django.urls.exceptions import NoReverseMatch
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
+from auditlog.models import LogEntry
+
 MAX = 75
 
 
 class LogEntryAdminMixin(object):
-
     def created(self, obj):
         return obj.timestamp.strftime('%Y-%m-%d %H:%M:%S')
     created.short_description = 'Created'
@@ -45,11 +46,12 @@ class LogEntryAdminMixin(object):
     resource_url.short_description = 'Resource'
 
     def msg_short(self, obj):
-        if obj.action == 2:
+        if obj.action == LogEntry.Action.DELETE:
             return ''  # delete
+
         changes = json.loads(obj.changes)
-        s = '' if len(changes) == 1 else 's'
         fields = ', '.join(changes.keys())
+
         if len(fields) > MAX:
             i = fields.rfind(' ', 0, MAX)
             fields = fields[:i] + ' ..'
@@ -59,8 +61,9 @@ class LogEntryAdminMixin(object):
     msg_short.short_description = 'Changes'
 
     def msg(self, obj):
-        if obj.action == 2:
+        if obj.action == LogEntry.Action.DELETE:
             return ''  # delete
+
         changes = json.loads(obj.changes)
         msg = '<table><tr><th>#</th><th>Field</th><th>From</th><th>To</th></tr>'
         for i, field in enumerate(sorted(changes), 1):

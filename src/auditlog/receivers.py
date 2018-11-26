@@ -30,19 +30,18 @@ def log_update(sender, instance, **kwargs):
         try:
             old = sender.objects.get(pk=instance.pk)
         except sender.DoesNotExist:
-            pass
-        else:
-            new = instance
+            return
 
-            changes = model_instance_diff(old, new)
+        new = instance
+        changes = model_instance_diff(old, new)
 
-            # Log an entry only if there are changes
-            if changes:
-                log_entry = LogEntry.objects.log_create(
-                    instance,
-                    action=LogEntry.Action.UPDATE,
-                    changes=json.dumps(changes),
-                )
+        # Log an entry only if there are changes
+        if changes:
+            log_entry = LogEntry.objects.log_create(
+                instance,
+                action=LogEntry.Action.UPDATE,
+                changes=json.dumps(changes),
+            )
 
 
 def log_delete(sender, instance, **kwargs):
