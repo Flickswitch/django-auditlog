@@ -1,9 +1,9 @@
-import json
 import ast
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models, DEFAULT_DB_ALIAS
 from django.db.models import QuerySet, Q
@@ -12,7 +12,6 @@ from django.utils.encoding import smart_text
 from django.utils.six import iteritems, integer_types
 from django.utils.translation import gettext_lazy as _
 
-from jsonfield.fields import JSONField
 from dateutil import parser
 from dateutil.tz import gettz
 
@@ -198,7 +197,7 @@ class LogEntry(models.Model):
     )
     object_repr = models.TextField(verbose_name=_("object representation"))
     action = models.PositiveSmallIntegerField(choices=Action.choices, verbose_name=_("action"))
-    changes = models.TextField(blank=True, verbose_name=_("change message"))
+    changes = JSONField(blank=True, null=True, verbose_name=_("change message"))
     actor = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -240,10 +239,7 @@ class LogEntry(models.Model):
         """
         :return: The changes recorded in this log entry as a dictionary object.
         """
-        try:
-            return json.loads(self.changes)
-        except ValueError:
-            return {}
+        return self.changes
 
     @property
     def changes_str(self, colon=': ', arrow=smart_text(' \u2192 '), separator='; '):

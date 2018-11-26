@@ -1,5 +1,3 @@
-import json
-
 from django import urls
 from django.conf import settings
 from django.template.defaultfilters import pluralize
@@ -49,14 +47,13 @@ class LogEntryAdminMixin(object):
         if obj.action == LogEntry.Action.DELETE:
             return ''  # delete
 
-        changes = json.loads(obj.changes)
-        fields = ', '.join(changes.keys())
+        fields = ', '.join(obj.changes.keys())
 
         if len(fields) > MAX:
             i = fields.rfind(' ', 0, MAX)
             fields = fields[:i] + ' ..'
 
-        change_count = len(changes)
+        change_count = len(obj.changes)
         return f'{change_count} change{pluralize(change_count)}: {fields}'
     msg_short.short_description = 'Changes'
 
@@ -64,10 +61,9 @@ class LogEntryAdminMixin(object):
         if obj.action == LogEntry.Action.DELETE:
             return ''  # delete
 
-        changes = json.loads(obj.changes)
         msg = '<table><tr><th>#</th><th>Field</th><th>From</th><th>To</th></tr>'
-        for i, field in enumerate(sorted(changes), 1):
-            value = [i, field] + (['***', '***'] if field == 'password' else changes[field])
+        for i, field in enumerate(sorted(obj.changes), 1):
+            value = [i, field] + (['***', '***'] if field == 'password' else obj.changes[field])
             msg += format_html('<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>', *value)
 
         msg += '</table>'

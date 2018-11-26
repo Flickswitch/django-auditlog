@@ -66,7 +66,7 @@ class SimpleModelTest(TestCase):
 
         history = obj.history.get(action=LogEntry.Action.UPDATE)
 
-        self.assertJSONEqual(history.changes, '{"boolean": ["False", "True"]}', msg="The change is correctly logged")
+        self.assertDictEqual(history.changes, {"boolean": ["False", "True"]}, msg="The change is correctly logged")
 
     def test_delete(self):
         """Deletion is logged correctly."""
@@ -530,10 +530,10 @@ class ChoicesFieldModelTest(TestCase):
         self.obj.save()
         self.assertTrue(self.obj.history.latest().changes_display_dict["status"][1] == "Green", msg="The human readable text 'Green' is displayed.")
 
-    def test_changes_display_dict_multiselect(self):
+    def test_changes_display_dict_arrayfield(self):
         self.assertTrue(self.obj.history.latest().changes_display_dict["multiselect"][1] == "Red, Green",
                         msg="The human readable text for the two choices, 'Red, Green' is displayed.")
-        self.obj.multiselect = ChoicesFieldModel.GREEN
+        self.obj.multiselect = [ChoicesFieldModel.GREEN]
         self.obj.save()
         self.assertTrue(self.obj.history.latest().changes_display_dict["multiselect"][1] == "Green",
                         msg="The human readable text 'Green' is displayed.")
@@ -541,7 +541,7 @@ class ChoicesFieldModelTest(TestCase):
         self.obj.save()
         self.assertTrue(self.obj.history.latest().changes_display_dict["multiselect"][1] == "None",
                         msg="The human readable text 'None' is displayed.")
-        self.obj.multiselect = ChoicesFieldModel.GREEN
+        self.obj.multiselect = [ChoicesFieldModel.GREEN]
         self.obj.save()
         self.assertTrue(self.obj.history.latest().changes_display_dict["multiselect"][1] == "Green",
                         msg="The human readable text 'Green' is displayed.")
