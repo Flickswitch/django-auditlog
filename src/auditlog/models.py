@@ -221,13 +221,8 @@ class LogEntry(models.Model):
         substrings = []
 
         for field, values in iteritems(self.changes_dict):
-            substring = smart_text('{field_name:s}{colon:s}{old:s}{arrow:s}{new:s}').format(
-                field_name=field,
-                colon=colon,
-                old=values[0],
-                arrow=arrow,
-                new=values[1],
-            )
+            old, new = values
+            substring = smart_text(f'{field!s}{colon!s}{old!s}{arrow!s}{new!s}')
             substrings.append(substring)
 
         return separator.join(substrings)
