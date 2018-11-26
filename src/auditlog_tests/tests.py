@@ -66,7 +66,7 @@ class SimpleModelTest(TestCase):
 
         history = obj.history.get(action=LogEntry.Action.UPDATE)
 
-        self.assertJSONEqual(history.changes, '{"boolean": ["False", "True"]}', msg="The change is correctly logged")
+        self.assertDictEqual(history.changes, {"boolean": ["False", "True"]}, msg="The change is correctly logged")
 
     def test_delete(self):
         """Deletion is logged correctly."""
