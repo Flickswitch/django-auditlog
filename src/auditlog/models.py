@@ -24,8 +24,8 @@ class LogEntryManager(models.Manager):
 
     def log_create(self, instance, **kwargs):
         """
-        Helper method to create a new log entry. This method automatically populates some fields when no explicit value
-        is given.
+        Helper method to create a new log entry. This method automatically populates some fields
+        when no explicit value is given.
 
         :param instance: The model instance to log a change for.
         :type instance: Model
@@ -33,32 +33,43 @@ class LogEntryManager(models.Manager):
         :return: The new log entry or `None` if there were no changes.
         :rtype: LogEntry
         """
-        changes = kwargs.get('changes', None)
+        changes = kwargs.get('changes')
+
+        if changes is None:
+            return None
+
         pk = self._get_pk_value(instance)
 
-        if changes is not None:
-            kwargs.setdefault('content_type', ContentType.objects.get_for_model(instance))
-            kwargs.setdefault('object_pk', pk)
-            kwargs.setdefault('object_repr', smart_text(instance))
+        kwargs.setdefault('content_type', ContentType.objects.get_for_model(instance))
+        kwargs.setdefault('object_pk', pk)
+        kwargs.setdefault('object_repr', smart_text(instance))
 
-            if isinstance(pk, integer_types):
-                kwargs.setdefault('object_id', pk)
+        if isinstance(pk, integer_types):
+            kwargs.setdefault('object_id', pk)
 
-            get_additional_data = getattr(instance, 'get_additional_data', None)
-            if callable(get_additional_data):
-                kwargs.setdefault('additional_data', get_additional_data())
+        get_additional_data = getattr(instance, 'get_additional_data', None)
+        if callable(get_additional_data):
+            kwargs.setdefault('additional_data', get_additional_data())
 
-            # Delete log entries with the same pk as a newly created model. This should only be necessary when an pk is
-            # used twice.
-            if kwargs.get('action', None) is LogEntry.Action.CREATE:
-                if kwargs.get('object_id', None) is not None and self.filter(content_type=kwargs.get('content_type'), object_id=kwargs.get('object_id')).exists():
-                    self.filter(content_type=kwargs.get('content_type'), object_id=kwargs.get('object_id')).delete()
-                else:
-                    self.filter(content_type=kwargs.get('content_type'), object_pk=kwargs.get('object_pk', '')).delete()
-            # save LogEntry to same database instance is using
-            db = instance._state.db
-            return self.create(**kwargs) if db is None or db == '' else self.using(db).create(**kwargs)
-        return None
+        # Delete log entries with the same pk as a newly created model.
+        # This should only be necessary when an pk is used twice.
+        if kwargs.get('action', None) == LogEntry.Action.CREATE:
+            object_id = kwargs.get('object_id')
+            content_type = kwargs.get('content_type')
+
+            if object_id is not None:
+                if self.filter(content_type=content_type, object_id=object_id).exists():
+                    self.filter(content_type=content_type, object_id=object_id).delete()
+            else:
+                object_id = object_id or ''
+                self.filter(content_type=content_type, object_pk=object_id).delete()
+
+        # save LogEntry to same database instance is using
+        db = instance._state.db
+        if db is None or db == '':
+            return self.create(**kwargs)
+        else:
+            return self.using(db).create(**kwargs)
 
     def get_for_object(self, instance):
         """
@@ -97,12 +108,12 @@ class LogEntryManager(models.Manager):
         primary_keys = list(queryset.values_list(queryset.model._meta.pk.name, flat=True))
 
         if isinstance(primary_keys[0], integer_types):
-            return self.filter(content_type=content_type).filter(Q(object_id__in=primary_keys)).distinct()
-        elif isinstance(queryset.model._meta.pk, models.UUIDField):
+            return self.filter(Q(object_id__in=primary_keys), content_type=content_type).distinct()
+
+        if isinstance(queryset.model._meta.pk, models.UUIDField):
             primary_keys = [smart_text(pk) for pk in primary_keys]
-            return self.filter(content_type=content_type).filter(Q(object_pk__in=primary_keys)).distinct()
-        else:
-            return self.filter(content_type=content_type).filter(Q(object_pk__in=primary_keys)).distinct()
+
+        return self.filter(Q(object_pk__in=primary_keys), content_type=content_type).distinct()
 
     def get_for_model(self, model):
         """
@@ -135,28 +146,31 @@ class LogEntryManager(models.Manager):
         # Check to make sure that we got an pk not a model object.
         if isinstance(pk, models.Model):
             pk = self._get_pk_value(pk)
+
         return pk
 
 
 class LogEntry(models.Model):
     """
-    Represents an entry in the audit log. The content type is saved along with the textual and numeric (if available)
-    primary key, as well as the textual representation of the object when it was saved. It holds the action performed
-    and the fields that were changed in the transaction.
+    Represents an entry in the audit log. The content type is saved along with the textual and
+    numeric (if available) primary key, as well as the textual representation of the object when
+    it was saved. It holds the action performed and the fields that were changed in the transaction.
 
-    If AuditlogMiddleware is used, the actor will be set automatically. Keep in mind that editing / re-saving LogEntry
-    instances may set the actor to a wrong value - editing LogEntry instances is not recommended (and it should not be
-    necessary).
+    If AuditlogMiddleware is used, the actor will be set automatically. Keep in mind that
+    editing / re-saving LogEntry instances may set the actor to a wrong value - editing LogEntry
+    instances is not recommended (and it should not be necessary).
     """
 
     class Action:
         """
-        The actions that Auditlog distinguishes: creating, updating and deleting objects. Viewing objects is not logged.
-        The values of the actions are numeric, a higher integer value means a more intrusive action. This may be useful
-        in some cases when comparing actions because the ``__lt``, ``__lte``, ``__gt``, ``__gte`` lookup filters can be
-        used in queries.
+        The actions that Auditlog distinguishes: creating, updating and deleting objects.
+        Viewing objects is not logged. The values of the actions are numeric, a higher integer
+        value means a more intrusive action. This may be useful in some cases when comparing
+        actions because the ``__lt``, ``__lte``, ``__gt``, ``__gte`` lookup
+        filters can be used in queries.
 
-        The valid actions are :py:attr:`Action.CREATE`, :py:attr:`Action.UPDATE` and :py:attr:`Action.DELETE`.
+        The valid actions are :py:attr:`Action.CREATE`, :py:attr:`Action.UPDATE` and
+        :py:attr:`Action.DELETE`.
         """
         CREATE = 0
         UPDATE = 1
@@ -168,14 +182,36 @@ class LogEntry(models.Model):
             (DELETE, _("delete")),
         )
 
-    content_type = models.ForeignKey(to='contenttypes.ContentType', on_delete=models.CASCADE, related_name='+', verbose_name=_("content type"))
+    content_type = models.ForeignKey(
+        to='contenttypes.ContentType',
+        on_delete=models.CASCADE,
+        related_name='+',
+        verbose_name=_("content type"),
+    )
+
     object_pk = models.CharField(db_index=True, max_length=255, verbose_name=_("object pk"))
-    object_id = models.BigIntegerField(blank=True, db_index=True, null=True, verbose_name=_("object id"))
+    object_id = models.BigIntegerField(
+        blank=True,
+        db_index=True,
+        null=True,
+        verbose_name=_("object id"),
+    )
     object_repr = models.TextField(verbose_name=_("object representation"))
     action = models.PositiveSmallIntegerField(choices=Action.choices, verbose_name=_("action"))
     changes = JSONField(blank=True, null=True, verbose_name=_("change message"))
-    actor = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='+', verbose_name=_("actor"))
-    remote_addr = models.GenericIPAddressField(blank=True, null=True, verbose_name=_("remote address"))
+    actor = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='+',
+        verbose_name=_("actor"),
+    )
+    remote_addr = models.GenericIPAddressField(
+        blank=True,
+        null=True,
+        verbose_name=_("remote address"),
+    )
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name=_("timestamp"))
     additional_data = JSONField(blank=True, null=True, verbose_name=_("additional data"))
 
@@ -189,15 +225,15 @@ class LogEntry(models.Model):
 
     def __str__(self):
         if self.action == self.Action.CREATE:
-            fstring = _("Created {repr:s}")
+            action_string = _('Created {repr:s}')
         elif self.action == self.Action.UPDATE:
-            fstring = _("Updated {repr:s}")
+            action_string = _('Updated {repr:s}')
         elif self.action == self.Action.DELETE:
-            fstring = _("Deleted {repr:s}")
+            action_string = _('Deleted {repr:s}')
         else:
-            fstring = _("Logged {repr:s}")
+            action_string = _('Logged {repr:s}')
 
-        return fstring.format(repr=self.object_repr)
+        return action_string.format(repr=self.object_repr)
 
     @property
     def changes_dict(self):
@@ -209,9 +245,10 @@ class LogEntry(models.Model):
     @property
     def changes_str(self, colon=': ', arrow=smart_text(' \u2192 '), separator='; '):
         """
-        Return the changes recorded in this log entry as a string. The formatting of the string can be customized by
-        setting alternate values for colon, arrow and separator. If the formatting is still not satisfying, please use
-        :py:func:`LogEntry.changes_dict` and format the string yourself.
+        Return the changes recorded in this log entry as a string. The formatting of the string
+        can be customized by setting alternate values for colon, arrow and separator.
+        If the formatting is still not satisfying, please use :py:func:`LogEntry.changes_dict`
+        and format the string yourself.
 
         :param colon: The string to place between the field name and the values.
         :param arrow: The string to place between each old and new value.
@@ -230,13 +267,16 @@ class LogEntry(models.Model):
     @property
     def changes_display_dict(self):
         """
-        :return: The changes recorded in this log entry intended for display to users as a dictionary object.
+        :return: The changes recorded in this log entry intended for display to users as a
+                 dictionary object.
         """
         # Get the model and model_fields
         from auditlog.registry import auditlog
+
         model = self.content_type.model_class()
         model_fields = auditlog.get_model_fields(model._meta.model)
         changes_display_dict = {}
+
         # grab the changes_dict and iterate through
         for field_name, values in iteritems(self.changes_dict):
             # try to get the field attribute on the model
@@ -245,11 +285,14 @@ class LogEntry(models.Model):
             except FieldDoesNotExist:
                 changes_display_dict[field_name] = values
                 continue
+
             values_display = []
             # handle choices fields and Postgres ArrayField to get human readable version
             choices_dict = None
+
             if hasattr(field, 'choices') and len(field.choices) > 0:
                 choices_dict = dict(field.choices)
+
             if hasattr(field, 'base_field') and getattr(field.base_field, 'choices', False):
                 choices_dict = dict(field.base_field.choices)
 
@@ -257,8 +300,13 @@ class LogEntry(models.Model):
                 for value in values:
                     try:
                         value = ast.literal_eval(value)
+
                         if type(value) is [].__class__:
-                            values_display.append(', '.join([choices_dict.get(val, 'None') for val in value]))
+                            choice_values = ', '.join(
+                                choices_dict.get(val, 'None')
+                                for val in value
+                            )
+                            values_display.append(choice_values)
                         else:
                             values_display.append(choices_dict.get(value, 'None'))
                     except ValueError:
@@ -271,11 +319,13 @@ class LogEntry(models.Model):
                 except AttributeError:
                     # if the field is a relationship it has no internal type and exclude it
                     continue
+
                 for value in values:
                     # handle case where field is a datetime, date, or time type
                     if field_type in ["DateTimeField", "DateField", "TimeField"]:
                         try:
                             value = parser.parse(value)
+
                             if field_type == "DateField":
                                 value = value.date()
                             elif field_type == "TimeField":
@@ -286,33 +336,41 @@ class LogEntry(models.Model):
                             value = formats.localize(value)
                         except ValueError:
                             pass
+
                     # check if length is longer than 140 and truncate with ellipsis
                     if len(value) > 140:
                         value = "{}...".format(value[:140])
 
                     values_display.append(value)
-            verbose_name = model_fields['mapping_fields'].get(field.name, getattr(field, 'verbose_name', field.name))
+
+            default_verbose_name = getattr(field, 'verbose_name', field.name)
+            verbose_name = model_fields['mapping_fields'].get(field.name, default_verbose_name)
             changes_display_dict[verbose_name] = values_display
+
         return changes_display_dict
 
 
 class AuditlogHistoryField(GenericRelation):
     """
-    A subclass of py:class:`django.contrib.contenttypes.fields.GenericRelation` that sets some default variables. This
-    makes it easier to access Auditlog's log entries, for example in templates.
+    A subclass of py:class:`django.contrib.contenttypes.fields.GenericRelation` that sets some
+    default variables. This makes it easier to access Auditlog's log entries,
+    for example in templates.
 
-    By default this field will assume that your primary keys are numeric, simply because this is the most common case.
-    However, if you have a non-integer primary key, you can simply pass ``pk_indexable=False`` to the constructor, and
-    Auditlog will fall back to using a non-indexed text based field for this model.
+    By default this field will assume that your primary keys are numeric, simply because this is
+    the most common case. However, if you have a non-integer primary key, you can simply
+    pass ``pk_indexable=False`` to the constructor, and Auditlog will fall back to using a
+    non-indexed text based field for this model.
 
-    Using this field will not automatically register the model for automatic logging. This is done so you can be more
-    flexible with how you use this field.
+    Using this field will not automatically register the model for automatic logging. This is done
+    so you can be more flexible with how you use this field.
 
-    :param pk_indexable: Whether the primary key for this model is not an :py:class:`int` or :py:class:`long`.
+    :param pk_indexable: Whether the primary key for this model is not an :py:class:`int` or
+           :py:class:`long`.
     :type pk_indexable: bool
-    :param delete_related: By default, including a generic relation into a model will cause all related objects to be
-        cascade-deleted when the parent object is deleted. Passing False to this overrides this behavior, retaining
-        the full auditlog history for the object. Defaults to True, because that's Django's default behavior.
+    :param delete_related: By default, including a generic relation into a model will cause all
+           related objects to be cascade-deleted when the parent object is deleted.
+           Passing False to this overrides this behavior, retaining the full auditlog history for
+           the object. Defaults to True, because that's Django's default behavior.
     :type delete_related: bool
     """
 
@@ -325,6 +383,7 @@ class AuditlogHistoryField(GenericRelation):
             kwargs['object_id_field'] = 'object_pk'
 
         kwargs['content_type_field'] = 'content_type'
+
         self.delete_related = delete_related
         super(AuditlogHistoryField, self).__init__(**kwargs)
 

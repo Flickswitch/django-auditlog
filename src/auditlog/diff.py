@@ -26,7 +26,7 @@ def track_field(field):
         return False
 
     # 1.8 check
-    elif getattr(field, 'rel', None) is not None and field.rel.to == LogEntry:
+    if getattr(field, 'rel', None) is not None and field.rel.to == LogEntry:
         return False
 
     return True
@@ -34,8 +34,8 @@ def track_field(field):
 
 def get_fields_in_model(instance):
     """
-    Returns the list of fields in the given model instance. Checks whether to use the official _meta API or use the raw
-    data. This method excludes many to many fields.
+    Returns the list of fields in the given model instance. Checks whether to use the official _meta
+    API or use the raw data. This method excludes many to many fields.
 
     :param instance: The model instance to get the fields for
     :type instance: Model
@@ -49,6 +49,7 @@ def get_fields_in_model(instance):
 
     if use_api:
         return [f for f in instance._meta.get_fields() if track_field(f)]
+
     return instance._meta.fields
 
 
@@ -82,23 +83,25 @@ def get_field_value(obj, field):
 
 def model_instance_diff(old, new):
     """
-    Calculates the differences between two model instances. One of the instances may be ``None`` (i.e., a newly
-    created model or deleted model). This will cause all fields with a value to have changed (from ``None``).
+    Calculates the differences between two model instances. One of the instances may be ``None``
+    (i.e., a newly created model or deleted model).
+    This will cause all fields with a value to have changed (from ``None``).
 
     :param old: The old state of the model instance.
     :type old: Model
     :param new: The new state of the model instance.
     :type new: Model
-    :return: A dictionary with the names of the changed fields as keys and a two tuple of the old and new field values
-             as value.
+    :return: A dictionary with the names of the changed fields as keys and a two tuple of
+            the old and new field values as value.
     :rtype: dict
     """
     from auditlog.registry import auditlog
 
     if not(old is None or isinstance(old, Model)):
-        raise TypeError("The supplied old instance is not a valid model instance.")
+        raise TypeError('The supplied old instance is not a valid model instance.')
+
     if not(new is None or isinstance(new, Model)):
-        raise TypeError("The supplied new instance is not a valid model instance.")
+        raise TypeError('The supplied new instance is not a valid model instance.')
 
     diff = {}
 
@@ -117,15 +120,21 @@ def model_instance_diff(old, new):
 
     # Check if fields must be filtered
     if model_fields and (model_fields['include_fields'] or model_fields['exclude_fields']) and fields:
-        filtered_fields = []
         if model_fields['include_fields']:
-            filtered_fields = [field for field in fields
-                               if field.name in model_fields['include_fields']]
+            filtered_fields = [
+                field
+                for field in fields
+                if field.name in model_fields['include_fields']
+            ]
         else:
             filtered_fields = fields
+
         if model_fields['exclude_fields']:
-            filtered_fields = [field for field in filtered_fields
-                               if field.name not in model_fields['exclude_fields']]
+            filtered_fields = [
+                field
+                for field in filtered_fields
+                if field.name not in model_fields['exclude_fields']
+            ]
         fields = filtered_fields
 
     for field in fields:
