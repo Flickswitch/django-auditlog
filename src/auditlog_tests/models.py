@@ -170,8 +170,8 @@ class ChoicesFieldModel(models.Model):
     )
 
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
-    multiselect = MultiSelectField(max_length=3, choices=STATUS_CHOICES, max_choices=3)
-    multiplechoice = models.CharField(max_length=3, choices=STATUS_CHOICES)
+    multiselect = ArrayField(models.CharField(max_length=3, choices=STATUS_CHOICES), null=True)
+    multiplechoice = models.CharField(max_length=15, choices=STATUS_CHOICES)
 
     history = AuditlogHistoryField()
 
