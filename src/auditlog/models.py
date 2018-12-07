@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import JSONField
+from django.contrib.postgres.indexes import GinIndex
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models, DEFAULT_DB_ALIAS
 from django.db.models import QuerySet, Q
@@ -221,6 +222,10 @@ class LogEntry(models.Model):
         ordering = ['-timestamp']
         verbose_name = _("log entry")
         verbose_name_plural = _("log entries")
+        indexes = [
+            GinIndex(fields=['changes']),
+            GinIndex(fields=['additional_data']),
+        ]
 
     def __str__(self):
         if self.action == self.Action.CREATE:
