@@ -23,6 +23,10 @@ class LogEntryAdmin(admin.ModelAdmin, LogEntryAdminMixin):
         'action',
         ResourceTypeFilter,
     ]
+    list_select_related = [
+        'actor',
+        'content_type',
+    ]
     readonly_fields = [
         'created',
         'resource_url',
