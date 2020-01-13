@@ -9,11 +9,12 @@ services:
   - postgresql
 
 addons:
-  postgresql: "9.4"
+  postgresql: "9.6"
 
 env:
   - TOX_ENV=py36-django-111
   - TOX_ENV=py36-django-20
+  - TOX_ENV=py36-django-30
 
 matrix:
   fast_finish: true
