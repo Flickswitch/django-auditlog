@@ -1,3 +1,4 @@
+from functools import partialmethod
 import threading
 import time
 
@@ -5,7 +6,6 @@ from django.apps import apps
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.utils.deprecation import MiddlewareMixin
-from django.utils.functional import curry
 from auditlog.models import LogEntry
 from auditlog.compat import is_authenticated
 
@@ -38,7 +38,11 @@ class AuditlogMiddleware(MiddlewareMixin):
         # Connect signal for automatic logging
         if hasattr(request, 'user') and is_authenticated(request.user):
             threadlocal_duid = threadlocal.auditlog['signal_duid']
-            set_actor = curry(self.set_actor, user=request.user, signal_duid=threadlocal_duid)
+            set_actor = partialmethod(
+                self.set_actor,
+                user=request.user,
+                signal_duid=threadlocal_duid,
+            )
             pre_save.connect(set_actor, sender=LogEntry, dispatch_uid=threadlocal_duid, weak=False)
 
     def process_response(self, request, response):
