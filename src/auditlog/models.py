@@ -9,7 +9,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models, DEFAULT_DB_ALIAS
 from django.db.models import QuerySet, Q
 from django.utils import formats, timezone
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 from django.utils.translation import gettext_lazy as _
 
 from dateutil import parser
@@ -41,7 +41,7 @@ class LogEntryManager(models.Manager):
 
         kwargs.setdefault('content_type', ContentType.objects.get_for_model(instance))
         kwargs.setdefault('object_pk', pk)
-        kwargs.setdefault('object_repr', smart_text(instance))
+        kwargs.setdefault('object_repr', smart_str(instance))
 
         if isinstance(pk, int):
             kwargs.setdefault('object_id', pk)
@@ -89,7 +89,7 @@ class LogEntryManager(models.Manager):
         if isinstance(pk, int):
             return self.filter(content_type=content_type, object_id=pk)
         else:
-            return self.filter(content_type=content_type, object_pk=smart_text(pk))
+            return self.filter(content_type=content_type, object_pk=smart_str(pk))
 
     def get_for_objects(self, queryset):
         """
@@ -110,7 +110,7 @@ class LogEntryManager(models.Manager):
             return self.filter(Q(object_id__in=primary_keys), content_type=content_type).distinct()
 
         if isinstance(queryset.model._meta.pk, models.UUIDField):
-            primary_keys = [smart_text(pk) for pk in primary_keys]
+            primary_keys = [smart_str(pk) for pk in primary_keys]
 
         return self.filter(Q(object_pk__in=primary_keys), content_type=content_type).distinct()
 
@@ -246,7 +246,7 @@ class LogEntry(models.Model):
         return self.changes
 
     @property
-    def changes_str(self, colon=': ', arrow=smart_text(' \u2192 '), separator='; '):
+    def changes_str(self, colon=': ', arrow=smart_str(' \u2192 '), separator='; '):
         """
         Return the changes recorded in this log entry as a string. The formatting of the string
         can be customized by setting alternate values for colon, arrow and separator.
@@ -262,7 +262,7 @@ class LogEntry(models.Model):
 
         for field, values in self.changes_dict.items():
             old, new = values
-            substring = smart_text(f'{field!s}{colon!s}{old!s}{arrow!s}{new!s}')
+            substring = smart_str(f'{field!s}{colon!s}{old!s}{arrow!s}{new!s}')
             substrings.append(substring)
 
         return separator.join(substrings)
