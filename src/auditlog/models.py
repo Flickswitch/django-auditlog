@@ -211,7 +211,7 @@ class LogEntry(models.Model):
         null=True,
         verbose_name=_("remote address"),
     )
-    timestamp = models.DateTimeField(auto_now_add=True, verbose_name=_("timestamp"))
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name=_("timestamp"), db_index=True)
     additional_data = JSONField(blank=True, null=True, verbose_name=_("additional data"))
 
     objects = LogEntryManager()
