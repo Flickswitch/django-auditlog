@@ -1,4 +1,4 @@
-from functools import partialmethod
+from functools import partial
 import threading
 import time
 
@@ -38,7 +38,7 @@ class AuditlogMiddleware(MiddlewareMixin):
         # Connect signal for automatic logging
         if hasattr(request, 'user') and is_authenticated(request.user):
             threadlocal_duid = threadlocal.auditlog['signal_duid']
-            set_actor = partialmethod(
+            set_actor = partial(
                 self.set_actor,
                 user=request.user,
                 signal_duid=threadlocal_duid,
