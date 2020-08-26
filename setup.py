@@ -10,7 +10,7 @@ setup(
     author='Jan-Jelle Kester',
     description='Audit log app for Django',
     install_requires=[
-        'python-dateutil==2.8.1'
+        'python-dateutil>=2.8,<=3.0'
     ],
     zip_safe=False,
     classifiers=[
